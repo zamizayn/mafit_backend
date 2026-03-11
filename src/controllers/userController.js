@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt')
-const { User } = require('../../models')
+const { User, Role } = require('../../models')
 
 
 //create user
@@ -65,34 +65,73 @@ exports.getMe = async (req, res) => {
     }
 }
 
-/*
-### Authentication & Profile API
-- **Token Issuance**: Updated `verifyOtp` in `src/controllers/authController.js` to create a basic user record and issue access/refresh tokens immediately after OTP verification, even for new users.
-- **Registration**: Simplified `completeRegistration` to handle profile updates for the now-existing user record.
-- **Get User Details**: Added a new `GET /users/me` API in `src/controllers/userController.js` to fetch the authenticated user's profile information.
-- **Schema Fix**: Made the `name` column nullable in the `users` table via migration `20260310111801-make-user-name-nullable.js` to allow initial user creation with just a mobile number.
+// get all trainers
+exports.getTrainers = async (req, res) => {
+    try {
+        const trainers = await User.findAll({
+            include: [{
+                model: Role,
+                where: { name: 'Trainer' },
+                through: { attributes: [] }
+            }]
+        })
 
-## Verification Results
-
-### Full Flow Test
-I verified the complete user journey using a test script:
-1. **OTP Verification**: A new user verifies their OTP.
-   - **Result**: User created, and tokens issued successfully.
-2. **Registration**: The user completes registration with `age`, `height`, `weight`, and `goal`.
-   - **Result**: Profile updated successfully.
-3. **Get Details**: The user fetches their details using `GET /users/me`.
-   - **Result**: Correct profile information returned.
-
-```json
-{
-  "id": "6a99ce58-98ce-43c2-9096-adae3ea96059",
-  "name": "Full Flow User",
-  "email": "fullflow@example.com",
-  "age": 25,
-  "height": 175,
-  "weight": 70,
-  "goal": "Muscle gain"
-  // ...
+        res.json({
+            success: true,
+            data: trainers
+        })
+    } catch (err) {
+        console.error("Get trainers error:", err)
+        res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        })
+    }
 }
-```
-*/
+
+// create a trainer
+exports.createTrainer = async (req, res) => {
+    try {
+        const { name, email, password, mobile } = req.body
+
+        // 1. Hash password
+        const hashedPassword = await bcrypt.hash(password, 10)
+
+        // 2. Create user (check for existing email first ideally, but keeping it simple as per existing flow)
+        const user = await User.create({
+            name,
+            email,
+            password: hashedPassword,
+            mobile,
+            isActive: true,
+            isVerified: true
+        })
+
+        // 3. Find Trainer Role
+        const trainerRole = await Role.findOne({ where: { name: 'Trainer' } })
+
+        if (trainerRole) {
+            // 4. Assign role
+            await user.addRole(trainerRole)
+        }
+
+        const trainerDetails = await User.findByPk(user.id, {
+            include: [{
+                model: Role,
+                where: { name: 'Trainer' },
+                through: { attributes: [] }
+            }]
+        })
+
+        res.status(201).json({
+            success: true,
+            data: trainerDetails
+        })
+    } catch (err) {
+        console.error("Create trainer error:", err)
+        res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        })
+    }
+}

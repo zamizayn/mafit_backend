@@ -1,6 +1,7 @@
 require('dotenv').config()
 
 const express = require('express')
+const cors = require('cors')
 const sequelize = require('./src/config/database')
 
 const authRoutes = require('./src/routes/authRoutes')
@@ -9,7 +10,14 @@ const roleRoutes = require('./src/routes/roleRoutes')
 const permissionRoutes = require('./src/routes/permissionRoutes')
 
 const app = express()
+app.use(cors({
+    origin: 'http://localhost:5173'
+}))
 app.use(express.json())
+
+const facilityRoutes = require('./src/routes/facilityRoutes')
+const slotRoutes = require('./src/routes/slotRoutes')
+const bookingRoutes = require('./src/routes/bookingRoutes')
 
 sequelize.authenticate()
     .then(() => {
@@ -29,3 +37,6 @@ app.use('/auth', authRoutes)
 app.use('/users', userRoutes)
 app.use('/roles', roleRoutes)
 app.use('/permissions', permissionRoutes)
+app.use('/facilities', facilityRoutes)
+app.use('/slots', slotRoutes)
+app.use('/bookings', bookingRoutes)

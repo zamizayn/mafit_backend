@@ -26,4 +26,7 @@ router.get(
     userController.getMe
 )
 
+router.get('/trainers', userController.getTrainers)
+router.post('/trainers', userController.createTrainer)
+
 module.exports = router
