@@ -26,6 +26,12 @@ router.get(
     userController.getMe
 )
 
+router.put(
+    '/me/name',
+    auth,
+    userController.updateName
+)
+
 router.get('/trainers', userController.getTrainers)
 router.post('/trainers', userController.createTrainer)
 

@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const { User, Otp } = require('../../models')
+const { sendOtpSms } = require('../utils/smsUtil')
 
 
 exports.login = async (req, res) => {
@@ -58,8 +59,8 @@ exports.sendOtp = async (req, res) => {
         const mobileStr = String(mobile)
         const user = await User.findOne({ where: { mobile: mobileStr } })
 
-        // Generate a 6-digit random OTP
-        const otpValue = Math.floor(100000 + Math.random() * 900000).toString()
+        // Generate a 4-digit random OTP
+        const otpValue = Math.floor(1000 + Math.random() * 9000).toString()
 
         // Set expiration to 10 minutes from now
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
@@ -74,7 +75,17 @@ exports.sendOtp = async (req, res) => {
             isUsed: false
         })
 
-        // In a real scenario, you would send this OTP via SMS here.
+        // Send OTP via SMS
+        const smsResult = await sendOtpSms(mobileStr, otpValue);
+
+        if (!smsResult.success) {
+            console.error("SMS Send Error:", smsResult);
+            return res.status(500).json({
+                message: "Failed to send OTP SMS",
+                details: smsResult
+            });
+        }
+
         res.json({
             message: "OTP sent successfully",
             otp: otpValue, // Included for development/testing convenience
@@ -84,6 +95,78 @@ exports.sendOtp = async (req, res) => {
 
     } catch (error) {
         console.error("Send OTP error:", error)
+        res.status(500).json({ message: "Internal server error" })
+    }
+}
+
+exports.resendOtp = async (req, res) => {
+    try {
+        const { mobile } = req.body
+
+        if (!mobile) {
+            return res.status(400).json({ message: "Mobile number is required" })
+        }
+
+        const mobileStr = String(mobile)
+
+        // Check cooldown – prevent resend within 60 seconds of last OTP
+        const lastOtp = await Otp.findOne({
+            where: { mobile: mobileStr },
+            order: [['createdAt', 'DESC']]
+        })
+
+        if (lastOtp) {
+            const secondsSinceLastOtp = (Date.now() - new Date(lastOtp.createdAt).getTime()) / 1000
+            if (secondsSinceLastOtp < 60) {
+                const waitTime = Math.ceil(60 - secondsSinceLastOtp)
+                return res.status(429).json({
+                    message: `Please wait ${waitTime} seconds before requesting a new OTP`,
+                    retryAfter: waitTime
+                })
+            }
+        }
+
+        // Invalidate all previous unused OTPs for this mobile
+        await Otp.update(
+            { isUsed: true },
+            { where: { mobile: mobileStr, isUsed: false } }
+        )
+
+        // Generate a new 4-digit OTP
+        const otpValue = Math.floor(1000 + Math.random() * 9000).toString()
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
+
+        const user = await User.findOne({ where: { mobile: mobileStr } })
+
+        await Otp.create({
+            userId: user ? user.id : null,
+            mobile: mobileStr,
+            otp: otpValue,
+            type: 'login',
+            expiresAt,
+            isUsed: false
+        })
+
+        // Send OTP via SMS
+        const smsResult = await sendOtpSms(mobileStr, otpValue)
+
+        if (!smsResult.success) {
+            console.error("SMS Send Error:", smsResult)
+            return res.status(500).json({
+                message: "Failed to send OTP SMS",
+                details: smsResult
+            })
+        }
+
+        res.json({
+            message: "OTP resent successfully",
+            otp: otpValue, // Included for development/testing convenience
+            expiresAt,
+            user: user ? user : null
+        })
+
+    } catch (error) {
+        console.error("Resend OTP error:", error)
         res.status(500).json({ message: "Internal server error" })
     }
 }
@@ -109,22 +192,29 @@ exports.verifyOtp = async (req, res) => {
         })
 
         if (!otpRecord) {
-            return res.status(400).json({ message: "Invalid or expired OTP" })
+            return res.status(400).json({ message: "Invalid OTP. Please check your otp and try again" })
         }
 
         // Mark OTP as used
         await otpRecord.update({ isUsed: true })
 
-        let user = await User.findOne({ where: { mobile: mobileStr } })
+        let user = await User.findOne({
+            where: { mobile: mobileStr },
+            attributes: { exclude: ['createdAt', 'updatedAt'] }
+        })
 
         let isNewUser = false
         if (!user) {
             isNewUser = true
             // Create a basic user record for new users
-            user = await User.create({
+            const newUser = await User.create({
                 mobile: mobileStr,
                 isActive: true,
                 isVerified: true
+            })
+            user = await User.findOne({
+                where: { id: newUser.id },
+                attributes: { exclude: ['createdAt', 'updatedAt'] }
             })
         }
 
@@ -192,3 +282,4 @@ exports.completeRegistration = async (req, res) => {
         res.status(500).json({ message: "Internal server error" })
     }
 }
+

@@ -50,7 +50,9 @@ exports.deleteUser = async (req, res) => {
 exports.getMe = async (req, res) => {
     try {
         const { userId } = req.user
-        const user = await User.findByPk(userId)
+        const user = await User.findByPk(userId, {
+            attributes: { exclude: ['createdAt', 'updatedAt'] }
+        })
 
         if (!user) {
             return res.status(404).json({ message: "User not found" })
@@ -59,6 +61,40 @@ exports.getMe = async (req, res) => {
         res.json(user)
     } catch (err) {
         console.error("Get user details error:", err)
+        res.status(500).json({
+            message: "Internal server error"
+        })
+    }
+}
+
+// update user name
+exports.updateName = async (req, res) => {
+    try {
+        const { userId } = req.user
+        const { name } = req.body
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({ message: "Name is required" })
+        }
+
+        const user = await User.findByPk(userId)
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" })
+        }
+
+        await user.update({ name: name.trim() })
+
+        const updatedUser = await User.findByPk(userId, {
+            attributes: { exclude: ['createdAt', 'updatedAt'] }
+        })
+
+        res.json({
+            message: "Name updated successfully",
+            user: updatedUser
+        })
+    } catch (err) {
+        console.error("Update name error:", err)
         res.status(500).json({
             message: "Internal server error"
         })
