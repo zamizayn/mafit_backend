@@ -5,9 +5,9 @@ const {
 module.exports = (sequelize, DataTypes) => {
   class Slot extends Model {
     static associate(models) {
-      Slot.belongsTo(models.Facility, {
-        foreignKey: 'facilityId',
-        as: 'facility'
+      Slot.belongsTo(models.Branch, {
+        foreignKey: 'branchId',
+        as: 'branch'
       });
       Slot.belongsTo(models.User, {
         foreignKey: 'trainerId',
@@ -25,13 +25,13 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true,
       defaultValue: DataTypes.UUIDV4
     },
-    facilityId: {
+    branchId: {
       type: DataTypes.UUID,
       allowNull: false
     },
     trainerId: {
       type: DataTypes.UUID,
-      allowNull: false
+      allowNull: true
     },
     date: {
       type: DataTypes.DATEONLY,

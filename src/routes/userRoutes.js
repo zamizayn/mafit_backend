@@ -6,6 +6,13 @@ const checkPermission = require('../middlewares/permissionMiddleware')
 
 const userController = require('../controllers/userController')
 
+router.get(
+    '/',
+    auth,
+    checkPermission('manage_users'),
+    userController.getAllUsers
+)
+
 router.post(
     '/',
     auth,

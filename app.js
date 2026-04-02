@@ -16,6 +16,7 @@ app.use(cors({
 app.use(express.json())
 
 const facilityRoutes = require('./src/routes/facilityRoutes')
+const branchRoutes = require('./src/routes/branchRoutes')
 const slotRoutes = require('./src/routes/slotRoutes')
 const bookingRoutes = require('./src/routes/bookingRoutes')
 
@@ -38,5 +39,6 @@ app.use('/users', userRoutes)
 app.use('/roles', roleRoutes)
 app.use('/permissions', permissionRoutes)
 app.use('/facilities', facilityRoutes)
+app.use('/branches', branchRoutes)
 app.use('/slots', slotRoutes)
 app.use('/bookings', bookingRoutes)

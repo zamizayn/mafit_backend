@@ -10,13 +10,9 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      Facility.hasMany(models.FacilityOperatingHours, {
+      Facility.hasMany(models.Branch, {
         foreignKey: 'facilityId',
-        as: 'operatingHours'
-      });
-      Facility.hasMany(models.Equipment, {
-        foreignKey: 'facilityId',
-        as: 'equipment'
+        as: 'branches'
       });
     }
   }
@@ -30,11 +26,13 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false
     },
-    description: DataTypes.TEXT,
-    image: DataTypes.STRING,
-    maxCapacity: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    image: {
+      type: DataTypes.STRING,
+      allowNull: true
     },
     isActive: {
       type: DataTypes.BOOLEAN,

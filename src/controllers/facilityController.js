@@ -1,4 +1,4 @@
-const { Facility, FacilityOperatingHours, Equipment } = require('../../models');
+const { Facility, Branch } = require('../../models');
 
 /**
  * @desc    Create a new facility with operating hours and equipment
@@ -7,44 +7,21 @@ const { Facility, FacilityOperatingHours, Equipment } = require('../../models');
  */
 exports.createFacility = async (req, res) => {
   try {
-    const { name, description, image, maxCapacity, operatingHours, equipment } = req.body;
+    const { name, description, image } = req.body;
 
     const facility = await Facility.create({
       name,
       description,
       image,
-      maxCapacity,
       isActive: true
-    });
-
-    if (operatingHours && operatingHours.length > 0) {
-      const hoursData = operatingHours.map(h => ({
-        ...h,
-        facilityId: facility.id
-      }));
-      await FacilityOperatingHours.bulkCreate(hoursData);
-    }
-
-    if (equipment && equipment.length > 0) {
-      const equipmentData = equipment.map(e => ({
-        ...e,
-        facilityId: facility.id
-      }));
-      await Equipment.bulkCreate(equipmentData);
-    }
-
-    const createdFacility = await Facility.findByPk(facility.id, {
-      include: [
-        { model: FacilityOperatingHours, as: 'operatingHours' },
-        { model: Equipment, as: 'equipment' }
-      ]
     });
 
     res.status(201).json({
       success: true,
-      data: createdFacility
+      data: facility
     });
   } catch (error) {
+    console.error("Create facility error:", error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -66,8 +43,7 @@ exports.getFacilities = async (req, res) => {
     const { count, rows: facilities } = await Facility.findAndCountAll({
       where: { isActive: true },
       include: [
-        { model: FacilityOperatingHours, as: 'operatingHours' },
-        { model: Equipment, as: 'equipment' }
+        { model: Branch, as: 'branches' }
       ],
       limit,
       offset,
@@ -102,8 +78,7 @@ exports.getFacility = async (req, res) => {
   try {
     const facility = await Facility.findByPk(req.params.id, {
       include: [
-        { model: FacilityOperatingHours, as: 'operatingHours' },
-        { model: Equipment, as: 'equipment' }
+        { model: Branch, as: 'branches' }
       ]
     });
 
@@ -144,31 +119,8 @@ exports.updateFacility = async (req, res) => {
 
     await facility.update(req.body);
 
-    // Update operating hours if provided (replaces existing)
-    if (req.body.operatingHours) {
-      await FacilityOperatingHours.destroy({ where: { facilityId: facility.id } });
-      const hoursData = req.body.operatingHours.map(h => ({
-        ...h,
-        facilityId: facility.id
-      }));
-      await FacilityOperatingHours.bulkCreate(hoursData);
-    }
-
-    // Update equipment if provided (replaces existing)
-    if (req.body.equipment) {
-      await Equipment.destroy({ where: { facilityId: facility.id } });
-      const equipmentData = req.body.equipment.map(e => ({
-        ...e,
-        facilityId: facility.id
-      }));
-      await Equipment.bulkCreate(equipmentData);
-    }
-
     const updatedFacility = await Facility.findByPk(facility.id, {
-      include: [
-        { model: FacilityOperatingHours, as: 'operatingHours' },
-        { model: Equipment, as: 'equipment' }
-      ]
+      include: [{ model: Branch, as: 'branches' }]
     });
 
     res.status(200).json({

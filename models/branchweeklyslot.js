@@ -3,20 +3,15 @@ const {
   Model
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-  class FacilityOperatingHours extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
+  class BranchWeeklySlot extends Model {
     static associate(models) {
-      FacilityOperatingHours.belongsTo(models.Branch, {
+      BranchWeeklySlot.belongsTo(models.Branch, {
         foreignKey: 'branchId',
         as: 'branch'
       });
     }
   }
-  FacilityOperatingHours.init({
+  BranchWeeklySlot.init({
     id: {
       type: DataTypes.UUID,
       primaryKey: true,
@@ -26,22 +21,30 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.UUID,
       allowNull: false
     },
-    dayRange: {
-      type: DataTypes.STRING,
+    dayOfWeek: {
+      type: DataTypes.INTEGER, // 0-6
       allowNull: false
     },
-    openTime: {
+    startTime: {
       type: DataTypes.TIME,
       allowNull: false
     },
-    closeTime: {
+    endTime: {
       type: DataTypes.TIME,
       allowNull: false
+    },
+    capacityLimit: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0
+    },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true
     }
   }, {
     sequelize,
-    modelName: 'FacilityOperatingHours',
-    tableName: 'facility_operating_hours'
+    modelName: 'BranchWeeklySlot',
+    tableName: 'branch_weekly_slots'
   });
-  return FacilityOperatingHours;
+  return BranchWeeklySlot;
 };

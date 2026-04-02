@@ -171,3 +171,38 @@ exports.createTrainer = async (req, res) => {
         })
     }
 }
+
+// get all users with pagination
+exports.getAllUsers = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1
+        const limit = parseInt(req.query.limit) || 10
+        const offset = (page - 1) * limit
+
+        const { count, rows } = await User.findAndCountAll({
+            limit,
+            offset,
+            attributes: { exclude: ['password'] },
+            order: [['createdAt', 'DESC']]
+        })
+
+        const totalPages = Math.ceil(count / limit)
+
+        res.json({
+            success: true,
+            data: rows,
+            pagination: {
+                totalItems: count,
+                totalPages,
+                currentPage: page,
+                limit
+            }
+        })
+    } catch (err) {
+        console.error("Get all users error:", err)
+        res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        })
+    }
+}
