@@ -94,3 +94,71 @@ exports.getBranchTrainers = async (req, res) => {
     });
   }
 };
+
+/**
+ * @desc    Update a trainer
+ * @route   PATCH /api/branches/:branchId/trainers/:trainerId
+ * @access  Private/Admin
+ */
+exports.updateTrainer = async (req, res) => {
+  try {
+    const { trainerId } = req.params;
+    const {
+      fullName,
+      email,
+      specialization,
+      hourlyRate,
+      bio,
+      photo,
+      availability
+    } = req.body;
+
+    const trainer = await Trainer.findByPk(trainerId);
+
+    if (!trainer) {
+      return res.status(404).json({
+        success: false,
+        message: "Trainer not found"
+      });
+    }
+
+    // 1. Update basic fields
+    await trainer.update({
+      fullName,
+      email,
+      specialization,
+      hourlyRate,
+      bio,
+      photo
+    });
+
+    // 2. Replace Availabilities if provided
+    if (availability !== undefined) {
+      await TrainerAvailability.destroy({ where: { trainerId } });
+
+      if (availability && availability.length > 0) {
+        const availabilityData = availability.map(a => ({
+          ...a,
+          trainerId
+        }));
+        await TrainerAvailability.bulkCreate(availabilityData);
+      }
+    }
+
+    const updatedTrainer = await Trainer.findByPk(trainerId, {
+      include: [
+        { model: TrainerAvailability, as: 'availabilities' }
+      ]
+    });
+
+    res.status(200).json({
+      success: true,
+      data: updatedTrainer
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

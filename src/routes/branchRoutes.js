@@ -8,6 +8,7 @@ const trainerRoutes = require('./trainerRoutes');
 router.post('/', branchController.createBranch);
 router.get('/', branchController.getBranches);
 router.get('/:id', branchController.getBranch);
+router.patch('/:id', branchController.updateBranch);
 router.delete('/:id', branchController.deleteBranch);
 
 // Nested routes

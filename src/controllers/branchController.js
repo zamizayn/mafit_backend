@@ -198,6 +198,66 @@ exports.getBranch = async (req, res) => {
 };
 
 /**
+ * @desc    Update a branch
+ * @route   PATCH /api/branches/:id
+ * @access  Private/Admin
+ */
+exports.updateBranch = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, location, description, image, maxCapacity, weeklySlots } = req.body;
+
+    const branch = await Branch.findByPk(id);
+
+    if (!branch) {
+      return res.status(404).json({
+        success: false,
+        message: "Branch not found"
+      });
+    }
+
+    // 1. Update basic fields
+    await branch.update({
+      name,
+      location,
+      description,
+      image,
+      maxCapacity
+    });
+
+    // 2. Replace Weekly Slots if provided
+    if (weeklySlots !== undefined) {
+      await BranchWeeklySlot.destroy({ where: { branchId: id } });
+
+      if (weeklySlots && weeklySlots.length > 0) {
+        const weeklySlotsData = weeklySlots.map(ws => ({
+          ...ws,
+          branchId: id
+        }));
+        await BranchWeeklySlot.bulkCreate(weeklySlotsData);
+      }
+    }
+
+    const updatedBranch = await Branch.findByPk(id, {
+      include: [
+        { model: Facility, as: 'category' },
+        { model: BranchWeeklySlot, as: 'weeklySlots' }
+      ]
+    });
+
+    res.status(200).json({
+      success: true,
+      data: updatedBranch
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+/**
  * @desc    Delete a branch
  * @route   DELETE /api/branches/:id
  * @access  Private/Admin
