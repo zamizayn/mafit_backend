@@ -34,7 +34,20 @@ module.exports = (sequelize, DataTypes) => {
     quantity: {
       type: DataTypes.INTEGER,
       defaultValue: 0
-    }
+    },
+    primaryPhoto: DataTypes.STRING,
+    brand: DataTypes.STRING,
+    modelNumber: DataTypes.STRING,
+    serialNumber: DataTypes.STRING,
+    purchaseDate: DataTypes.DATEONLY,
+    warrantyExpiry: DataTypes.DATEONLY,
+    purchaseCost: DataTypes.DECIMAL(10, 2),
+    assignedArea: DataTypes.STRING,
+    status: {
+      type: DataTypes.STRING,
+      defaultValue: 'Active'
+    },
+    maintenanceFrequency: DataTypes.STRING
   }, {
     sequelize,
     modelName: 'Equipment',
